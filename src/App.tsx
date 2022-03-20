@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
-import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
-import logo from './logo.svg';
+import { Stack, IStackStyles } from '@fluentui/react';
+// import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
+// import logo from './logo.svg';
 import './App.css';
 
 import { TextField } from '@fluentui/react/lib/TextField';
 // import { lorem } from '@fluentui/example-data';
 import { IStackProps } from '@fluentui/react/lib/Stack';
 
-import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
+// import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
+import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
 
-const boldStyle: Partial<ITextStyles> = { root: { fontWeight: FontWeights.semibold } };
+// const boldStyle: Partial<ITextStyles> = { root: { fontWeight: FontWeights.semibold } };
 
 const stackStyles: Partial<IStackStyles> = { root: { width: 650 } };
 const stackTokens = { childrenGap: 50 };
-const dummyText: string = "aaaa";
+// const dummyText: string = "aaaa";
 const columnProps: Partial<IStackProps> = {
   tokens: { childrenGap: 15 },
   styles: { root: { width: 300 } },
@@ -29,14 +31,12 @@ const labelStyles: Partial<IStyleSet<ILabelStyles>> = {
 export const App: React.FunctionComponent = () => {
 
     // helper functions
-  const [fileSelected, setFileSelected] = useState(null);
+  const [fileSelected, setFileSelected] = useState<File| null>();
   const [text, setText] = React.useState("Привіт Люба");
-  const [textAreaValue, setTextAreaValue] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [processed, setProcessed] = useState(false);
   const [processedDocument, setProcessedDocument] = useState(false);
-  const [inputKey, setInputKey] = useState(Math.random().toString(36));
-  const [translatedResults, setTranslatedResults] = useState(null);
+  const [translatedResults, setTranslatedResults] = useState<string>("");
   const [translatedFiles, setTranslatedFiles] = useState(null);
 
   const sleep = (milliseconds: number) => {
@@ -79,14 +79,65 @@ export const App: React.FunctionComponent = () => {
         })
         .then((data) => setTranslatedResults(data))
         .catch(error => console.log('error', error));
-    // console.log(translatedResults)
+    // console.log(JSON.stringify(translatedResults[0]))
     setProcessed(true)
 
     // reset state/form
     setFileSelected(null);
     setUploading(false);
-    setInputKey(Math.random().toString(36));
   }
+
+  const onFileChange = React.useCallback(
+    (event: React.FormEvent<HTMLInputElement>) => {
+    setFileSelected(event.currentTarget.files?.item(0));
+    
+  },[],
+  );
+
+  const onFileUpload = async () => {
+    // prepare UI
+    setUploading(true);
+    setProcessedDocument(false);
+
+    // // *** UPLOAD TO AZURE STORAGE ***
+    // // const blobsInContainer = await uploadFileToBlob(fileSelected);
+    if (fileSelected){
+      // *** SEND FILE TO Azure Functions ***
+      var formdata = new FormData();
+      formdata.append("file", fileSelected, fileSelected.name);
+
+      var requestOptions : RequestInit = {
+        method: 'POST',
+        body: formdata,
+        redirect: 'follow'
+      };
+
+
+      await fetch("/api/translate-doc-api", requestOptions)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `This is an HTTP error: The status is ${response.status}`
+              );
+            }
+            return response.json();
+            
+          })
+          .then((data) => setTranslatedFiles(data))
+          .catch(error => console.log('error', error));
+      
+          console.log(translatedFiles)
+          await sleep(10*1000) //wait 10 seconds  
+    }
+    
+      
+    setProcessedDocument(true)
+
+    // reset state/form
+    setFileSelected(null);
+    setUploading(false);
+  };
+
 
 
   return (
@@ -105,14 +156,19 @@ export const App: React.FunctionComponent = () => {
             {/* Translation */}
             <TextField label="Váš text" multiline rows={3} value={text} onChange={onTextChange}/>
             <PrimaryButton text="Translate" allowDisabledFocus disabled={uploading} checked={false} onClick={onTranslate}/>
-            <TextField label="Překlad" multiline rows={3} value={text}/>
+            <TextField label="Překlad" multiline rows={3} disabled={processed} value={JSON.stringify(translatedResults[0])}/>
           </Stack>
         </PivotItem>
         <PivotItem headerText="Translate files">
           <Stack {...columnProps}>
             <Label styles={labelStyles}>Nahrajte soubor v CZ (*.docx, *.pdf)</Label>
-            <input type="file" accept="application/xml"  />
-            <PrimaryButton text="Translate doc" allowDisabledFocus disabled={false} checked={false} />
+            <input  name="file" type="file" onChange={onFileChange}  />
+            <PrimaryButton text="Translate doc" allowDisabledFocus disabled={uploading} checked={false} onClick={onFileUpload}/>
+            <TextField label="Překlozeny dokuemnt" disabled={processedDocument} multiline rows={3} value={JSON.stringify(translatedFiles)}/>
+            {/* Přeložený dokument: 
+        {translatedFiles.fileurl}
+        &nbsp;|&nbsp;{translatedFiles.original_filename}
+        &nbsp;|&nbsp;{translatedFiles.translated_filename} */}
           </Stack>
         </PivotItem>
       </Pivot>
