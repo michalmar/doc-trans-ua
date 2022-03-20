@@ -4,12 +4,15 @@ import { Stack, IStackStyles } from '@fluentui/react';
 // import logo from './logo.svg';
 import './App.css';
 
+
 import { TextField } from '@fluentui/react/lib/TextField';
+import { ProgressIndicator } from '@fluentui/react/lib/ProgressIndicator';
 // import { lorem } from '@fluentui/example-data';
 import { IStackProps } from '@fluentui/react/lib/Stack';
 
 // import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
-import { PrimaryButton } from '@fluentui/react/lib/Button';
+import { PrimaryButton, ActionButton } from '@fluentui/react/lib/Button';
+import { IIconProps, initializeIcons } from '@fluentui/react';
 import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
 
 // const boldStyle: Partial<ITextStyles> = { root: { fontWeight: FontWeights.semibold } };
@@ -38,6 +41,10 @@ export const App: React.FunctionComponent = () => {
   const [processedDocument, setProcessedDocument] = useState(false);
   const [translatedResults, setTranslatedResults] = useState<string>("");
   const [translatedFiles, setTranslatedFiles] = useState(null);
+
+  const addDownloadIcon: IIconProps = { iconName: 'Download' };
+
+  initializeIcons();
 
   const sleep = (milliseconds: number) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
@@ -127,12 +134,10 @@ export const App: React.FunctionComponent = () => {
           .catch(error => console.log('error', error));
       
           console.log(translatedFiles)
-          await sleep(10*1000) //wait 10 seconds  
+          await sleep(10*1000) //wait 10 seconds
+          
+          setProcessedDocument(true)
     }
-    
-      
-    setProcessedDocument(true)
-
     // reset state/form
     setFileSelected(null);
     setUploading(false);
@@ -141,11 +146,12 @@ export const App: React.FunctionComponent = () => {
 
 
   return (
+    
     <Stack horizontalAlign="center" verticalAlign="start" verticalFill styles={stackStyles} tokens={stackTokens}>
       {/* <img className="App-logo" src={logo} alt="logo" /> */}
       <Pivot aria-label="Basic Pivot Example">
         <PivotItem
-          headerText="Tranlate text"
+          headerText="Překlad textu"
           headerButtonProps={{
             'data-order': 1,
             'data-title': 'My Files Title',
@@ -155,16 +161,19 @@ export const App: React.FunctionComponent = () => {
             <Label styles={labelStyles}>Text k překladu: (Text v poli níže můžete nahradit libovolným jiným textem)</Label>
             {/* Translation */}
             <TextField label="Váš text" multiline rows={3} value={text} onChange={onTextChange}/>
-            <PrimaryButton text="Translate" allowDisabledFocus disabled={uploading} checked={false} onClick={onTranslate}/>
+            <PrimaryButton text="Přeložit" allowDisabledFocus disabled={uploading} checked={false} onClick={onTranslate}/>
             <TextField label="Překlad" multiline rows={3} disabled={processed} value={JSON.stringify(translatedResults[0])}/>
           </Stack>
         </PivotItem>
-        <PivotItem headerText="Translate files">
+        <PivotItem headerText="Přklad dokumentu">
           <Stack {...columnProps}>
             <Label styles={labelStyles}>Nahrajte soubor v CZ (*.docx, *.pdf)</Label>
             <input  name="file" type="file" onChange={onFileChange}  />
-            <PrimaryButton text="Translate doc" allowDisabledFocus disabled={uploading} checked={false} onClick={onFileUpload}/>
-            <TextField label="Překlozeny dokuemnt" disabled={processedDocument} multiline rows={3} value={JSON.stringify(translatedFiles)}/>
+            <PrimaryButton text="Přeložit dokument" allowDisabledFocus disabled={uploading} checked={false} onClick={onFileUpload}/>
+            {uploading? <ProgressIndicator label="Pracuji..." description="Nahrávám dokument a probíhá překlad." /> : null }
+            {processedDocument? <TextField label="Přeložený dokuemnt" multiline rows={3} value={JSON.stringify(translatedFiles)}/> :null}
+            {processedDocument? <ActionButton iconProps={addDownloadIcon}>stáhnout</ActionButton> : null}
+
             {/* Přeložený dokument: 
         {translatedFiles.fileurl}
         &nbsp;|&nbsp;{translatedFiles.original_filename}
