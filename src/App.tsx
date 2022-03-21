@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Stack, IStackStyles} from '@fluentui/react';
 // import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
 import logo from './logo.png';
+import doclogo from './microsoft-translator.jpg'
 import './App.css';
 
 
@@ -16,6 +17,33 @@ import { IIconProps, initializeIcons } from '@fluentui/react';
 
 import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
 
+import {
+  DocumentCard,
+  DocumentCardActivity,
+  DocumentCardPreview,
+  DocumentCardTitle,
+  IDocumentCardPreviewProps,
+} from '@fluentui/react/lib/DocumentCard';
+import { ImageFit } from '@fluentui/react/lib/Image';
+// import { TestImages } from '@fluentui/example-data';
+
+const previewProps: IDocumentCardPreviewProps = {
+  previewImages: [
+    {
+      // name: 'Revenue stream proposal fiscal year 2016 version02.pptx',
+      linkProps: {
+        // href: 'http://bing.com',
+        target: '_blank',
+      },
+      previewImageSrc: doclogo,
+      // iconSrc: logo,
+      imageFit: ImageFit.cover,
+      width: 300,
+      // height: 196,
+    },
+  ],
+};
+const DocumentCardActivityPeople = [{ name: 'Azure Translator', profileImageSrc: "" }];
 
 initializeIcons();
 // const boldStyle: Partial<ITextStyles> = { root: { fontWeight: FontWeights.semibold } };
@@ -105,16 +133,12 @@ export const App: React.FunctionComponent = () => {
     
     let data = await api<translateTextResponse>("/api/translate-text-api", requestOptions)
         .then((response) => {
-          // console.log("xxx")
-          // console.log(response);
           return response;
           
         })
         .catch(error => console.log('error', error));
-    // console.log("sssss")
-    // console.log(data)
+  
     if (data) {
-      // console.log(data[0]);
       setTranslatedResults(data[0]);
     }
     
@@ -152,10 +176,7 @@ export const App: React.FunctionComponent = () => {
 
         let data = await api2<translateDocResponse>("/api/translate-doc-api", requestOptions)
           .then((response) => {
-            // console.log("xxx")
-            // console.log(response);
             return response;
-            
           })
           .catch(error => console.log('error', error));
         
@@ -163,8 +184,6 @@ export const App: React.FunctionComponent = () => {
           setTranslatedFiles(data)
         }
           
-    
-        console.log(translatedFiles)
         await sleep(10*1000) //wait 10 seconds
         
         setProcessedDocument(true)
@@ -175,11 +194,28 @@ export const App: React.FunctionComponent = () => {
     };
 
   function showTranslatedDocumentResult(translatedFiles: translateDocResponse | undefined): React.ReactNode {
+    let docname = ""
+    let href = ""
+    if (translatedFiles) {
+      docname = translatedFiles?.translated_filename
+      href = translatedFiles.fileurl
+    }
     return (
       <Stack>
         
         {/* {translatedFiles?.translated_filename} */}
         <ActionButton iconProps={addDownloadIcon}  href={translatedFiles?.fileurl} target="_blank" >stáhnout přeložený dokument</ActionButton>
+        <DocumentCard
+              aria-label="Default Document Card with large file name..."
+              onClickHref={href}
+            >
+              <DocumentCardPreview {...previewProps} />
+              <DocumentCardTitle
+                title={docname}
+                shouldTruncate
+              />
+              <DocumentCardActivity activity="Created a few minutes ago" people={DocumentCardActivityPeople} />
+            </DocumentCard>
       </Stack>
     )
   }
