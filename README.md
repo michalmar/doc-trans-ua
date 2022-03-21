@@ -1,10 +1,12 @@
-# Getting Started with Create React App and Fluent UI
+# Showcase for Azure Cognitive Translations service
 
-This is a [Create React App](https://github.com/facebook/create-react-app) based repo that comes with Fluent UI pre-installed!
+based on templase: Getting Started with Create React App and Fluent UI
 
-## Available Scripts
+Build Satus:
+[![Azure Static Web Apps CI/CD](https://github.com/michalmar/doc-trans-ua/actions/workflows/azure-static-web-apps-ashy-bush-0eafc1203.yml/badge.svg)](https://github.com/michalmar/doc-trans-ua/actions/workflows/azure-static-web-apps-ashy-bush-0eafc1203.yml)
 
-In the project directory, you can run:
+### `swa start build --api-location api`
+Runs the app and also asociated Azure Functions (apis) in debug mode.
 
 ### `npm start`
 
