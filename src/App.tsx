@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stack, IStackStyles, Link} from '@fluentui/react';
+import { Stack, IStackStyles} from '@fluentui/react';
 // import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
 import logo from './logo.png';
 import './App.css';
@@ -131,47 +131,6 @@ export const App: React.FunctionComponent = () => {
   },[],
   );
 
-  const onFileUpload2 = async () => {
-    // prepare UI
-    setUploading(true);
-    setProcessedDocument(false);
-
-    // // *** UPLOAD TO AZURE STORAGE ***
-    // // const blobsInContainer = await uploadFileToBlob(fileSelected);
-    if (fileSelected){
-      // *** SEND FILE TO Azure Functions ***
-      var formdata = new FormData();
-      formdata.append("file", fileSelected, fileSelected.name);
-
-      var requestOptions : RequestInit = {
-        method: 'POST',
-        body: formdata,
-        redirect: 'follow'
-      };
-
-
-      await fetch("/api/translate-doc-api", requestOptions)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(
-                `This is an HTTP error: The status is ${response.status}`
-              );
-            }
-            return response.json();
-            
-          })
-          .then((data) => setTranslatedFiles(data))
-          .catch(error => console.log('error', error));
-      
-          console.log(translatedFiles)
-          await sleep(10*1000) //wait 10 seconds
-          
-          setProcessedDocument(true)
-    }
-    // reset state/form
-    setFileSelected(null);
-    setUploading(false);
-  };
   const onFileUpload = async () => {
       // prepare UI
       setUploading(true);
