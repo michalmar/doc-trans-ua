@@ -18,8 +18,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             pass
         else:
             text = req_body.get('text')
+
+    fromLang = req.params.get('fromLang')
+    if not fromLang:
+        try:
+            req_body = req.get_json()
+        except ValueError:
+            pass
+        else:
+            fromLang = req_body.get('fromLang')
     
-    # print(f"text: {text}")
+    toLang = req.params.get('toLang')
+    if not toLang:
+        try:
+            req_body = req.get_json()
+        except ValueError:
+            pass
+        else:
+            toLang = req_body.get('toLang')
+    
+    # print(f"fromLang: {fromLang}")
+    # print(f"toLang: {toLang}")
+    
 
     subscription_key = os.environ["TRANSLATOR_TEXT_SUBSCRIPTION_KEY"]
     endpoint = os.environ["TRANSLATOR_TEXT_ENDPOINT"]
@@ -30,8 +50,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     params = {
         'api-version': '3.0',
-        'from': 'uk',
-        'to': ['cs', 'en']
+        'from': fromLang,
+        'to': [toLang, 'en']
     }
     headers = {
         'Ocp-Apim-Subscription-Key': subscription_key,
