@@ -5,6 +5,9 @@ based on templase: Getting Started with Create React App and Fluent UI
 Build Satus:
 [![Azure Static Web Apps CI/CD](https://github.com/michalmar/doc-trans-ua/actions/workflows/azure-static-web-apps-ashy-bush-0eafc1203.yml/badge.svg)](https://github.com/michalmar/doc-trans-ua/actions/workflows/azure-static-web-apps-ashy-bush-0eafc1203.yml)
 
+Web page:
+[ashy-bush-0eafc1203](https://ashy-bush-0eafc1203.1.azurestaticapps.net)
+
 ### `swa start build --api-location api`
 Runs the app and also asociated Azure Functions (apis) in debug mode.
 
