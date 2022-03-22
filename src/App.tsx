@@ -17,6 +17,8 @@ import { IIconProps, initializeIcons } from '@fluentui/react';
 
 import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
 
+import { ChoiceGroup, IChoiceGroupOption } from '@fluentui/react/lib/ChoiceGroup';
+
 import {
   DocumentCard,
   DocumentCardActivity,
@@ -25,7 +27,6 @@ import {
   IDocumentCardPreviewProps,
 } from '@fluentui/react/lib/DocumentCard';
 import { ImageFit } from '@fluentui/react/lib/Image';
-// import { TestImages } from '@fluentui/example-data';
 
 const previewProps: IDocumentCardPreviewProps = {
   previewImages: [
@@ -47,6 +48,12 @@ const DocumentCardActivityPeople = [{ name: 'Azure Translator', profileImageSrc:
 
 initializeIcons();
 // const boldStyle: Partial<ITextStyles> = { root: { fontWeight: FontWeights.semibold } };
+
+
+const options: IChoiceGroupOption[] = [
+  { key: 'ukcs', text: 'Ukrajinsky -> Česky' },
+  { key: 'csuk', text: 'Česky -> Ukrajinsky' },
+];
 
 const stackStyles: Partial<IStackStyles> = { root: { width: 650 } };
 const stackTokens = { childrenGap: 50 };
@@ -72,6 +79,10 @@ export const App: React.FunctionComponent = () => {
   const [processedDocument, setProcessedDocument] = useState(false);
   const [translatedResults, setTranslatedResults] = useState<translateTextResponse>();
   const [translatedFiles, setTranslatedFiles] = useState<translateDocResponse>();
+
+  const [fromLang, setFromLang] = useState<string>("uk");
+  const [toLang, setToLang] = useState<string>("cs");
+  
 
   const addDownloadIcon: IIconProps = { iconName: 'Download' };
 
@@ -107,6 +118,21 @@ export const App: React.FunctionComponent = () => {
       .then(data => data as T)
   }
 
+  const onChoiceChange = React.useCallback(
+    (ev: React.FormEvent<HTMLElement | HTMLInputElement> | undefined, option: IChoiceGroupOption | undefined) => {
+      // console.dir(option);
+      // way of translation
+      if (option?.key === "csuk") {
+          setFromLang("cs")
+          setToLang("uk")
+      } else {
+        setFromLang("uk")
+        setToLang("cs")
+      }
+    }, [],
+
+  );
+
   const onTextChange = React.useCallback(
     (event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => {
       setText(newValue || '');
@@ -127,8 +153,8 @@ export const App: React.FunctionComponent = () => {
     var requestOptions : RequestInit = {
       method: 'POST',
       headers: myHeaders,
-      body: '{"text": "'+text+'"}',
-      redirect: 'follow'
+      body: '{"text": "'+text+'", "fromLang": "'+fromLang+'", "toLang":"'+toLang+'"}',
+      redirect: 'follow',
     };
     
     let data = await api<translateTextResponse>("/api/translate-text-api", requestOptions)
@@ -227,11 +253,13 @@ export const App: React.FunctionComponent = () => {
     <Stack horizontalAlign="center" verticalAlign="start" verticalFill styles={stackStyles} tokens={stackTokens}>
       <img className="App-logo" src={logo} alt="logo" />
       <Pivot aria-label="Basic Pivot Example">
-        <PivotItem headerText="Překlad textu (UA->CZ)">
+        <PivotItem headerText="Překlad textu">
           <Stack {...columnProps}>
+            
             <Label styles={labelStyles}>Text k překladu: (Text v poli níže můžete nahradit libovolným jiným textem)</Label>
             {/* Translation */}
-            <TextField label="Váš text" multiline rows={3} value={text} onChange={onTextChange}/>
+            <TextField label="Váš text" multiline rows={3} value={text} onChange={onTextChange} required={true} />
+            <ChoiceGroup defaultSelectedKey="ukcs" options={options} onChange={onChoiceChange} label="Směr překladu" required={true} />
             <PrimaryButton text="Přeložit" allowDisabledFocus disabled={uploading} checked={false} onClick={onTranslate}/>
             <TextField label="Překlad" multiline rows={3} disabled={!processed} value={translatedResults?.translations[0].text}/>
           </Stack>
