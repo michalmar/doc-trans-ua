@@ -19,6 +19,14 @@ import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/reac
 
 import { ChoiceGroup, IChoiceGroupOption } from '@fluentui/react/lib/ChoiceGroup';
 
+import { ResultReason,  
+  TranslationRecognizer, 
+  TranslationRecognitionEventArgs, 
+  SessionEventArgs, 
+  TranslationRecognitionResult,
+  TranslationRecognitionCanceledEventArgs } from "microsoft-cognitiveservices-speech-sdk";
+import Cookie from 'universal-cookie';
+
 import {
   DocumentCard,
   DocumentCardActivity,
@@ -27,6 +35,15 @@ import {
   IDocumentCardPreviewProps,
 } from '@fluentui/react/lib/DocumentCard';
 import { ImageFit } from '@fluentui/react/lib/Image';
+
+
+const speechsdk = require("microsoft-cognitiveservices-speech-sdk");
+const optionsSpeech = [
+  { value: "cs", label: "Cestina", translation: "Cesky:" },
+  { value: "pl", label: "Polish", translation: "Polish:" },
+  { value: "uk", label: "Ukrainian", translation: "Ukrainian:" },
+];
+
 
 const previewProps: IDocumentCardPreviewProps = {
   previewImages: [
@@ -71,6 +88,20 @@ const labelStyles: Partial<IStyleSet<ILabelStyles>> = {
 
 export const App: React.FunctionComponent = () => {
 
+  // constructor(props) {
+  //   super(props);
+
+  //   this.state = {
+  //     displayText: "INITIALIZED: ready to test speech...",
+  //     cs: "",
+  //     pl: "",
+  //     pt: "",
+  //   };
+  // }
+
+  const [displayText, setDisplayText] = useState<string>("INITIALIZED: ready to test speech...")
+  const [cs, setCS] = useState<string>("nic...");
+  // const [speechToken, setSpeechToken] = useState<speechTokenResponse>();
     // helper functions
   const [fileSelected, setFileSelected] = useState<File| null>();
   const [text, setText] = React.useState("Привіт Люба");
@@ -94,6 +125,10 @@ export const App: React.FunctionComponent = () => {
 
   // For the "unwrapping" variation
 
+  type speechTokenResponse = {
+    authToken: string,
+    region: string
+  }
 
   type translateTextResponse = {
     translations: translateTextResponseRecord[];
@@ -246,7 +281,157 @@ export const App: React.FunctionComponent = () => {
     )
   }
 
+  async function getToken():Promise<speechTokenResponse>{
+    const cookie = new Cookie();
+    const speechToken = cookie.get('speech-token');
+    
+    if (speechToken === undefined) {
+      var myHeaders = new Headers();
+      myHeaders.append("Content-Type", "text/plain");
+  
+      var requestOptions : RequestInit = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow',
+      };
+      
+      let data = await api2<speechTokenResponse>("/api/get-speech-token", requestOptions)
+          .then((response) => {
+            return response;
+          })
+          .catch(error => console.log('error', error));
+    
+      if (data) {
+        // setSpeechToken(data);
+        // console.log("setting cookie..."+data.region)
+        cookie.set('speech-token', data.region + ':' + data.authToken, {maxAge: 540, path: '/'});
+        return data;
+      }
+    } else {
+        // console.log('Token succcessfullty fetched from cookie');
+        const idx = speechToken.indexOf(':');
+        return { authToken: speechToken.slice(idx + 1), region: speechToken.slice(0, idx) };
+        // setSpeechToken({ authToken: speechToken.slice(idx + 1), region: speechToken.slice(0, idx) })
+    }
+    return {authToken:"x",region:"x"}; 
+  }
  
+  const sttFromMic = async () => {
+    // this.setState({
+    //   displayText: "speak into your microphone...",
+    // });
+    setDisplayText("speak to mic...")
+
+    
+
+    // const tokenObj = await getTokenOrRefresh();
+    let speechToken  = await getToken();
+
+    setDisplayText("token read"+speechToken?.region)
+    
+    if (speechToken) {
+      setDisplayText("token OK, setting config..."+ speechToken.region)
+      const speechConfig =
+        speechsdk.SpeechTranslationConfig.fromAuthorizationToken(
+          speechToken.authToken,
+          speechToken.region
+        );
+      speechConfig.speechRecognitionLanguage = "en-US";
+      optionsSpeech.forEach((option) => {
+        // console.log("adding: "+option.value);
+        speechConfig.addTargetLanguage(option.value);
+      });
+      
+      const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput();
+      const recognizer = new speechsdk.TranslationRecognizer(
+        speechConfig,
+        audioConfig
+      );
+      
+      // just a debug events
+      recognizer.sessionStarted =  (s: TranslationRecognizer, e: SessionEventArgs)=>{
+        console.log("sessionStarted ", e)
+      }
+      recognizer.sessionStopped =  (s: TranslationRecognizer, e: SessionEventArgs) => {
+        console.log("sessionStopped ", e)
+      }
+      recognizer.speechStartDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+        console.log("speechStartDetected ")
+      }
+      recognizer.speechEndDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+        console.log("speechEndDetected ")
+      }
+      recognizer.canceled = (s: TranslationRecognizer, e: TranslationRecognitionCanceledEventArgs) => {
+        console.log("Cancelled ")
+      }
+
+      recognizer.recognizing = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+        console.log("recognizing ", e);
+        let result = "";
+        if (
+          e.result.reason == ResultReason.RecognizedSpeech
+        ) {
+          result = `TRANSLATED: Text=${e.result.text}`;
+        } else if (e.result.reason == ResultReason.NoMatch) {
+          result = "NOMATCH: Speech could not be translated.";
+        }
+        console.log(result);
+        setCS(e.result.translations.get("cs"));
+        setDisplayText(e.result.text);
+        // this.setState({
+        //   cs: e.result.translations.get("cs"),
+        //   pl: e.result.translations.get("pl"),
+        //   uk: e.result.translations.get("uk"),
+        //   displayText: e.result.text,
+        // });
+      };
+
+      recognizer.recognized = (s:TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+        console.log("recognized ", e);
+        setCS(e.result.translations.get("cs"));
+        setDisplayText(e.result.text);
+        // this.setState({
+        //   displayText: `RECOGNIZED: ${e.result.text}`,
+        //   cs: e.result.translations.get("cs"),
+        //   pl: e.result.translations.get("pl"),
+        //   uk: e.result.translations.get("uk"),
+        // });
+      };
+
+      setDisplayText("starting...")
+      // console.dir(recognizer.properties)
+
+      // function recognizeOnceAsync             (cb?: (e: TranslationRecognitionResult) => void, err?: (e: string) => void)
+      // function startContinuousRecognitionAsync(cb?: () => void, err?: (e: string) => void)
+      // recognizer.recognizeOnceAsync(
+      //   function(e:TranslationRecognitionResult) {
+      //     setDisplayText("recognized once");
+      //     setCS(e.translations.get("cs"));
+      //   },
+      //   function (er:string) {
+      //     recognizer.close();
+      //     setDisplayText("error om recognition");
+      //     // recognizer = undefined;
+      //   }
+      // );
+
+      recognizer.startContinuousRecognitionAsync(
+        function () {
+          // recognizer.close();
+          setDisplayText("recognition started");
+          // recognizer = undefined;
+        },
+        function (er:string) {
+          recognizer.close();
+          setDisplayText("error om recognition");
+          // recognizer = undefined;
+        }
+      );
+
+    } else {
+      setDisplayText("token not properly initialized, start again...")
+    }
+  }
  
   return (
     
@@ -271,6 +456,14 @@ export const App: React.FunctionComponent = () => {
             <PrimaryButton text="Přeložit dokument" allowDisabledFocus disabled={uploading} checked={false} onClick={onFileUpload}/>
             {uploading? <ProgressIndicator label="Pracuji..." description="Nahrávám dokument a probíhá překlad." /> : null }
             {processedDocument? showTranslatedDocumentResult(translatedFiles) :null}
+          </Stack>
+          
+        </PivotItem>
+        <PivotItem headerText="Speech">
+          <Stack {...columnProps}>
+            <Label styles={labelStyles}>{displayText}</Label>
+            <PrimaryButton text="Start" allowDisabledFocus disabled={uploading} checked={false} onClick={sttFromMic}/>
+            {cs}
           </Stack>
           
         </PivotItem>
