@@ -8,6 +8,9 @@ Build Satus:
 Web page:
 [ashy-bush-0eafc1203](https://ashy-bush-0eafc1203.1.azurestaticapps.net)
 
+### `pip install  -r api\requirements.txt`
+To install env for the API/Functions
+
 ### `swa start build --api-location api`
 Runs the app and also asociated Azure Functions (apis) in debug mode.
 
