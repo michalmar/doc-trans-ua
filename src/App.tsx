@@ -1,32 +1,27 @@
 import React, { useState } from 'react';
-import { Stack, IStackStyles} from '@fluentui/react';
-// import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
 import logo from './logo.png';
 import doclogo from './microsoft-translator.jpg'
-import './App.css';
+import './custom.css';
+import Cookie from 'universal-cookie';
 
-
-import { TextField } from '@fluentui/react/lib/TextField';
-import { ProgressIndicator } from '@fluentui/react/lib/ProgressIndicator';
-// import { lorem } from '@fluentui/example-data';
-import { IStackProps } from '@fluentui/react/lib/Stack';
-
-// import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
-import { PrimaryButton, ActionButton } from '@fluentui/react/lib/Button';
-import { IIconProps, initializeIcons } from '@fluentui/react';
-
-import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
-
-import { ChoiceGroup, IChoiceGroupOption } from '@fluentui/react/lib/ChoiceGroup';
-
+//Speech imports
 import { ResultReason,  
   TranslationRecognizer, 
   TranslationRecognitionEventArgs, 
   SessionEventArgs, 
-  TranslationRecognitionResult,
+  // TranslationRecognitionResult,
   TranslationRecognitionCanceledEventArgs } from "microsoft-cognitiveservices-speech-sdk";
-import Cookie from 'universal-cookie';
 
+// Fluent UI imports
+import { Stack, IStackStyles, Text} from '@fluentui/react';
+// import { Stack, Text, Link, FontWeights, IStackTokens, IStackStyles, ITextStyles } from '@fluentui/react';
+import { TextField } from '@fluentui/react/lib/TextField';
+import { ProgressIndicator } from '@fluentui/react/lib/ProgressIndicator';
+import { IStackProps } from '@fluentui/react/lib/Stack';
+import { PrimaryButton, ActionButton } from '@fluentui/react/lib/Button';
+import { IIconProps, initializeIcons } from '@fluentui/react';
+import { IStyleSet, Label, ILabelStyles, Pivot, PivotItem } from '@fluentui/react';
+import { ChoiceGroup, IChoiceGroupOption } from '@fluentui/react/lib/ChoiceGroup';
 import {
   DocumentCard,
   DocumentCardActivity,
@@ -39,7 +34,7 @@ import { ImageFit } from '@fluentui/react/lib/Image';
 
 const speechsdk = require("microsoft-cognitiveservices-speech-sdk");
 const optionsSpeech = [
-  { value: "cs", label: "Cestina", translation: "Cesky:" },
+  { value: "en", label: "English", translation: "Emglish:" },
   { value: "pl", label: "Polish", translation: "Polish:" },
   { value: "uk", label: "Ukrainian", translation: "Ukrainian:" },
 ];
@@ -77,7 +72,7 @@ const stackTokens = { childrenGap: 50 };
 // const dummyText: string = "aaaa";
 const columnProps: Partial<IStackProps> = {
   tokens: { childrenGap: 15 },
-  styles: { root: { width: 300 } },
+  styles: { root: { width: 350 } },
 };
 
 
@@ -86,8 +81,27 @@ const labelStyles: Partial<IStyleSet<ILabelStyles>> = {
   root: { marginTop: 10 },
 };
 
-export const App: React.FunctionComponent = () => {
 
+type speechTokenResponse = {
+  authToken: string,
+  region: string
+}
+
+type translateTextResponse = {
+  translations: translateTextResponseRecord[];
+}
+type translateTextResponseRecord = {
+  text: string,
+  to: string
+}
+type translateDocResponse = {
+  fileurl: string,
+  original_filename: string,
+  translated_filename: string
+}
+
+// export default class App extends Component {
+export const App: React.FunctionComponent = () => {
   // constructor(props) {
   //   super(props);
 
@@ -99,10 +113,15 @@ export const App: React.FunctionComponent = () => {
   //   };
   // }
 
-  const [displayText, setDisplayText] = useState<string>("INITIALIZED: ready to test speech...")
-  const [cs, setCS] = useState<string>("nic...");
-  // const [speechToken, setSpeechToken] = useState<speechTokenResponse>();
-    // helper functions
+  // speech translation
+  const [displayText, setDisplayText] = useState<string>("Zmáčkněte start a mluvte....")
+  const [en, setEN] = useState<string>("Press start and speak...");
+  const [pl, setPL] = useState<string>("Naciśnij start i mów...");
+  const [uk, setUK] = useState<string>("Натисніть почати і говорити...");
+
+  const [recognizing, setRecognizing] = useState(false);
+
+
   const [fileSelected, setFileSelected] = useState<File| null>();
   const [text, setText] = React.useState("Привіт Люба");
   const [uploading, setUploading] = useState(false);
@@ -117,31 +136,12 @@ export const App: React.FunctionComponent = () => {
 
   const addDownloadIcon: IIconProps = { iconName: 'Download' };
 
-  // initializeIcons();
-
+  
   const sleep = (milliseconds: number) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
   }
 
-  // For the "unwrapping" variation
-
-  type speechTokenResponse = {
-    authToken: string,
-    region: string
-  }
-
-  type translateTextResponse = {
-    translations: translateTextResponseRecord[];
-  }
-  type translateTextResponseRecord = {
-    text: string,
-    to: string
-  }
-  type translateDocResponse = {
-    fileurl: string,
-    original_filename: string,
-    translated_filename: string
-  }
+  
   function api<T>(url: string, requestOptions: RequestInit): Promise<T[]> {
     return fetch(url, requestOptions)
       .then(response => response.json())
@@ -303,142 +303,121 @@ export const App: React.FunctionComponent = () => {
     
       if (data) {
         // setSpeechToken(data);
-        // console.log("setting cookie..."+data.region)
+        console.log("setting cookie..."+data.region)
         cookie.set('speech-token', data.region + ':' + data.authToken, {maxAge: 540, path: '/'});
         return data;
       }
     } else {
-        // console.log('Token succcessfullty fetched from cookie');
+        console.log('Token succcessfullty fetched from cookie');
         const idx = speechToken.indexOf(':');
         return { authToken: speechToken.slice(idx + 1), region: speechToken.slice(0, idx) };
         // setSpeechToken({ authToken: speechToken.slice(idx + 1), region: speechToken.slice(0, idx) })
     }
     return {authToken:"x",region:"x"}; 
   }
- 
+
+
+
+  // async componentDidMount() {
+  //   // check for valid speech key/region
+  //   const tokenRes = await getTokenOrRefresh();
+  //   if (tokenRes.authToken === null) {
+  //     this.setState({
+  //       displayText: "FATAL_ERROR: " + tokenRes.error,
+  //     });
+  //   }
+  // }
+
+  // async sttFromMic() {
   const sttFromMic = async () => {
     // this.setState({
     //   displayText: "speak into your microphone...",
     // });
-    setDisplayText("speak to mic...")
-
-    
+    setRecognizing(true)
+    // setDisplayText("speak to mic...")
 
     // const tokenObj = await getTokenOrRefresh();
     let speechToken  = await getToken();
-
-    setDisplayText("token read"+speechToken?.region)
-    
-    if (speechToken) {
-      setDisplayText("token OK, setting config..."+ speechToken.region)
-      const speechConfig =
-        speechsdk.SpeechTranslationConfig.fromAuthorizationToken(
-          speechToken.authToken,
-          speechToken.region
-        );
-      speechConfig.speechRecognitionLanguage = "en-US";
-      optionsSpeech.forEach((option) => {
-        // console.log("adding: "+option.value);
-        speechConfig.addTargetLanguage(option.value);
-      });
-      
-      const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput();
-      const recognizer = new speechsdk.TranslationRecognizer(
-        speechConfig,
-        audioConfig
+    console.log("region:"+speechToken.region)
+    const speechConfig =
+      speechsdk.SpeechTranslationConfig.fromAuthorizationToken(
+        speechToken.authToken,
+        speechToken.region
+        
       );
-      
-      // just a debug events
-      recognizer.sessionStarted =  (s: TranslationRecognizer, e: SessionEventArgs)=>{
-        console.log("sessionStarted ", e)
-      }
-      recognizer.sessionStopped =  (s: TranslationRecognizer, e: SessionEventArgs) => {
-        console.log("sessionStopped ", e)
-      }
-      recognizer.speechStartDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
-        console.log("speechStartDetected ")
-      }
-      recognizer.speechEndDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
-        console.log("speechEndDetected ")
-      }
-      recognizer.canceled = (s: TranslationRecognizer, e: TranslationRecognitionCanceledEventArgs) => {
-        console.log("Cancelled ")
-      }
+    // speechConfig.speechRecognitionLanguage = "en-US";
+    speechConfig.speechRecognitionLanguage = "cs-CZ";
+    optionsSpeech.forEach((option) => {
+      speechConfig.addTargetLanguage(option.value);
+    });
 
-      recognizer.recognizing = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
-        console.log("recognizing ", e);
-        let result = "";
-        if (
-          e.result.reason == ResultReason.RecognizedSpeech
-        ) {
-          result = `TRANSLATED: Text=${e.result.text}`;
-        } else if (e.result.reason == ResultReason.NoMatch) {
-          result = "NOMATCH: Speech could not be translated.";
-        }
-        console.log(result);
-        setCS(e.result.translations.get("cs"));
-        setDisplayText(e.result.text);
-        // this.setState({
-        //   cs: e.result.translations.get("cs"),
-        //   pl: e.result.translations.get("pl"),
-        //   uk: e.result.translations.get("uk"),
-        //   displayText: e.result.text,
-        // });
-      };
+    const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput();
+    const recognizer = new speechsdk.TranslationRecognizer(
+      speechConfig,
+      audioConfig
+    );
 
-      recognizer.recognized = (s:TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
-        console.log("recognized ", e);
-        setCS(e.result.translations.get("cs"));
-        setDisplayText(e.result.text);
-        // this.setState({
-        //   displayText: `RECOGNIZED: ${e.result.text}`,
-        //   cs: e.result.translations.get("cs"),
-        //   pl: e.result.translations.get("pl"),
-        //   uk: e.result.translations.get("uk"),
-        // });
-      };
-
-      setDisplayText("starting...")
-      // console.dir(recognizer.properties)
-
-      // function recognizeOnceAsync             (cb?: (e: TranslationRecognitionResult) => void, err?: (e: string) => void)
-      // function startContinuousRecognitionAsync(cb?: () => void, err?: (e: string) => void)
-      // recognizer.recognizeOnceAsync(
-      //   function(e:TranslationRecognitionResult) {
-      //     setDisplayText("recognized once");
-      //     setCS(e.translations.get("cs"));
-      //   },
-      //   function (er:string) {
-      //     recognizer.close();
-      //     setDisplayText("error om recognition");
-      //     // recognizer = undefined;
-      //   }
-      // );
-
-      recognizer.startContinuousRecognitionAsync(
-        function () {
-          // recognizer.close();
-          setDisplayText("recognition started");
-          // recognizer = undefined;
-        },
-        function (er:string) {
-          recognizer.close();
-          setDisplayText("error om recognition");
-          // recognizer = undefined;
-        }
-      );
-
-    } else {
-      setDisplayText("token not properly initialized, start again...")
+    // just a debug events
+    recognizer.sessionStarted =  (s: TranslationRecognizer, e: SessionEventArgs)=>{
+      console.log("sessionStarted ", e)
     }
+    recognizer.sessionStopped =  (s: TranslationRecognizer, e: SessionEventArgs) => {
+      console.log("sessionStopped ", e)
+      recognizer.close();
+      setRecognizing(false)
+    }
+    recognizer.speechStartDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+      console.log("speechStartDetected ")
+    }
+    recognizer.speechEndDetected = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+      console.log("speechEndDetected ")
+      recognizer.close();
+      setRecognizing(false)
+    }
+    recognizer.canceled = (s: TranslationRecognizer, e: TranslationRecognitionCanceledEventArgs) => {
+      console.log("Cancelled ")
+      recognizer.close();
+      setRecognizing(false)
+    }
+
+    // recognizer.recognizing = (s, e) => {
+    recognizer.recognizing = (s: TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+      // console.log("recognizing ", e);
+      let result = "";
+      if (
+        e.result.reason === ResultReason.RecognizedSpeech
+      ) {
+        result = `TRANSLATED: Text=${e.result.text}`;
+      } else if (e.result.reason === ResultReason.NoMatch) {
+        result = "NOMATCH: Speech could not be translated.";
+      }
+      console.log(result);
+      setEN(e.result.translations.get("en"));
+      setPL(e.result.translations.get("pl"));
+      setUK(e.result.translations.get("uk"));
+      setDisplayText(e.result.text);
+    };
+
+    // recognizer.recognized = (s, e) => {
+    recognizer.recognized = (s:TranslationRecognizer, e: TranslationRecognitionEventArgs) => {
+      // console.log("recognized ", e);
+      setEN(e.result.translations.get("en"));
+      setPL(e.result.translations.get("pl"));
+      setUK(e.result.translations.get("uk"));
+      setDisplayText(e.result.text);
+    };
+
+    recognizer.startContinuousRecognitionAsync();
+
   }
- 
-  return (
-    
-    <Stack horizontalAlign="center" verticalAlign="start" verticalFill styles={stackStyles} tokens={stackTokens}>
+
+
+    return (
+
+      <Stack horizontalAlign="center" verticalAlign="start" verticalFill styles={stackStyles} tokens={stackTokens}>
       <img className="App-logo" src={logo} alt="logo" />
       <Pivot aria-label="Basic Pivot Example">
-        <PivotItem headerText="Překlad textu">
+      <PivotItem headerText="Překlad textu">
           <Stack {...columnProps}>
             
             <Label styles={labelStyles}>Text k překladu: (Text v poli níže můžete nahradit libovolným jiným textem)</Label>
@@ -449,7 +428,7 @@ export const App: React.FunctionComponent = () => {
             <TextField label="Překlad" multiline rows={3} disabled={!processed} value={translatedResults?.translations[0].text}/>
           </Stack>
         </PivotItem>
-        <PivotItem headerText="Přklad dokumentu (CZ -> UA)">
+        <PivotItem headerText="Překlad dokumentu (CZ -> UA)">
           <Stack {...columnProps}>
             <Label styles={labelStyles}>Nahrajte soubor v CZ (*.docx, *.pdf)</Label>
             <input  name="file" type="file" onChange={onFileChange}  />
@@ -459,17 +438,33 @@ export const App: React.FunctionComponent = () => {
           </Stack>
           
         </PivotItem>
-        <PivotItem headerText="Speech">
+        <PivotItem headerText="Překlad mluveného slova">
           <Stack {...columnProps}>
-            <Label styles={labelStyles}>{displayText}</Label>
-            <PrimaryButton text="Start" allowDisabledFocus disabled={uploading} checked={false} onClick={sttFromMic}/>
-            {cs}
+            <Label styles={labelStyles}>Zmáčkněte start a začněte mluvit Česky</Label>
+            <PrimaryButton text="Start" allowDisabledFocus disabled={recognizing} checked={false} onClick={sttFromMic}/>
+            {recognizing? <ProgressIndicator label="Mluvte..." description="překlad probíhá na pozadí do zvolených jazyků." /> : null }
+            <Stack>
+              <img width="24" alt="Czechia" src="http://purecatamphetamine.github.io/country-flag-icons/3x2/CZ.svg"/>
+              <Text>{displayText}</Text>
+            </Stack>
+            <Stack>
+              <img width="24" alt="Ukraine" src="http://purecatamphetamine.github.io/country-flag-icons/3x2/UA.svg"/>
+              <Text>{uk}</Text>
+            </Stack>
+            <Stack>
+              <img width="24" alt="Poland" src="http://purecatamphetamine.github.io/country-flag-icons/3x2/PL.svg"/>
+              <Text>{pl}</Text>
+            </Stack>            
+            <Stack>
+              <img width="24" alt="English" src="http://purecatamphetamine.github.io/country-flag-icons/3x2/US.svg"/>
+              <Text>{en}</Text>
+            </Stack>
+            
           </Stack>
           
         </PivotItem>
       </Pivot>
-    </Stack>
-  );
-};
-
-
+      </Stack>
+    );
+  
+}
